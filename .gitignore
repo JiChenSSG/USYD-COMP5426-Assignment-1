@@ -51,6 +51,8 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-matrix
+example
+output
+gepp*
 .clang-format
 .vscode/

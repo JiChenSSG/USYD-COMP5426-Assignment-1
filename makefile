@@ -1,5 +1,5 @@
 CC=gcc
-DEBUGFLAGS=-g -DDEBUG
+DEBUGFLAGS=-DDEBUG
 CFLAGS=-g -Wall -O3
 OMPFLAGS =-fopenmp
 

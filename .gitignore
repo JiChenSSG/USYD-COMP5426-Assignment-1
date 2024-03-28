@@ -53,6 +53,9 @@ dkms.conf
 
 example
 output
-gepp*
+gepp_d
+gepp
+gepp_omp
+gepp_omp_d
 .clang-format
 .vscode/

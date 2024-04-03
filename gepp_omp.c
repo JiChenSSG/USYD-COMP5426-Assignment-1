@@ -15,6 +15,7 @@ int main(int agrc, char* agrv[]) {
     double** a1;
 
     int n;  // input size
+	int T;	// thread number
     int i, j, k;
     int indk;
     double c, amax;
@@ -25,19 +26,22 @@ int main(int agrc, char* agrv[]) {
 
 	const int BLOCK_SIZE = 4;
 
-    if (agrc == 2) {
+    if (agrc == 3) {
         n = atoi(agrv[1]);
+        T = atoi(agrv[2]);
         printf("The matrix size:  %d * %d \n", n, n);
+        printf("The thread number:  %d\n", T);
     } else {
         printf(
             "Usage: %s n\n\n"
-            " n: the matrix size\n\n",
-            agrv[0]);
+            " n: the matrix size\n",
+            " T: the thread number\n\n", agrv[0]);
         return 1;
     }
 
+    omp_set_num_threads(T);
 
-    printf("Creating and initializing matrices...\n\n");
+        printf("Creating and initializing matrices...\n\n");
     /*** Allocate contiguous memory for 2D matrices ***/
     a0 = (double*)malloc(n * n * sizeof(double));
     a = (double**)malloc(n * sizeof(double*));
@@ -381,11 +385,11 @@ int main(int agrc, char* agrv[]) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             if (fabs(a[i][j] - a1[i][j]) > 1.0E-7) {
-                printf("check fail\n");
                 // print_matrix(a, n, n);
                 // print_matrix(a1, n, n);
-				printf("%d %d %.8lf %.8lf\n", i, j, a[i][j], a1[i][j]);
-                //exit(1);
+				// printf("%d %d %.8lf %.8lf\n", i, j, a[i][j], a1[i][j]);
+                printf("check fail\n");
+                exit(1);
             }
         }
     }

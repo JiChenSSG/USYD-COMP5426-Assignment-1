@@ -1,9 +1,9 @@
 #include <math.h>
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
-#include <omp.h>
 
 void print_matrix(double** T, int rows, int cols);
 
@@ -15,7 +15,7 @@ int main(int agrc, char* agrv[]) {
     double** a1;
 
     int n;  // input size
-	int T;	// thread number
+    int T;  // thread number
     int i, j, k;
     int indk;
     double c, amax;
@@ -24,7 +24,7 @@ int main(int agrc, char* agrv[]) {
     long seconds, microseconds;
     double elapsed;
 
-	const int BLOCK_SIZE = 4;
+    const int BLOCK_SIZE = 4;
 
     if (agrc == 3) {
         n = atoi(agrv[1]);
@@ -41,7 +41,7 @@ int main(int agrc, char* agrv[]) {
 
     omp_set_num_threads(T);
 
-        printf("Creating and initializing matrices...\n\n");
+    printf("Creating and initializing matrices...\n\n");
     /*** Allocate contiguous memory for 2D matrices ***/
     a0 = (double*)malloc(n * n * sizeof(double));
     a = (double**)malloc(n * sizeof(double*));
@@ -147,6 +147,8 @@ int main(int agrc, char* agrv[]) {
     double atop;
     int m, tmp, t;
 
+    // clang-format off
+
     gettimeofday(&start_time, 0);
     for (i = 0; i < n - BLOCK_SIZE - 1; i += BLOCK_SIZE) {
         END = i + BLOCK_SIZE;
@@ -178,8 +180,9 @@ int main(int agrc, char* agrv[]) {
 
         // store multiplier in place of A(k,i), update A(i:i, i:n)
         atop = a1[i][i];
+		#pragma omp parallel for shared(atop)
         for (k = i + 1; k < n; k++) {
-            a1[k][i] = a1[k][i] / atop;
+            a1[k][i] /= atop;
         }
 
         // print_matrix(a1, n, n);
@@ -189,7 +192,8 @@ int main(int agrc, char* agrv[]) {
         a00 = a1[i][j];
         a01 = a1[i][j + 1];
         a02 = a1[i][j + 2];
-        for (k = j; k < n; ++k) {
+		#pragma omp parallel for shared(a00, a01, a02)
+        for (k = j; k < n; k++) {
             c = a1[k][i];
 
             a1[k][j] -= a00 * c;
@@ -226,6 +230,7 @@ int main(int agrc, char* agrv[]) {
 
             // store multiplier in place of A(k,i), update col
             atop = a1[j][j];
+			#pragma omp parallel for shared(atop)
             for (k = j + 1; k < n; k++) {
                 a1[k][j] = a1[k][j] / atop;
             }
@@ -233,6 +238,7 @@ int main(int agrc, char* agrv[]) {
             // print_matrix(a1, n, n);
 
             // update A(j+1:n, i:END) for next swap
+			#pragma omp parallel for
             for (k = j + 1; k < n; ++k) {
                 c = a1[k][j];
                 for (m = j + 1; m < END; m++) {
@@ -270,6 +276,7 @@ int main(int agrc, char* agrv[]) {
 
         // store multiplier in place of A(k,i), update A(i:i, i:n)
         atop = a1[m][m];
+		#pragma omp parallel for shared(atop)
         for (k = m + 1; k < n; k++) {
             a1[k][m] = a1[k][m] / atop;
         }
@@ -290,7 +297,7 @@ int main(int agrc, char* agrv[]) {
         // print_matrix(a1, n, n);
 
         // calculate trailing matrix in BLAS 3
-		#pragma omp parallel for
+		#pragma omp parallel for shared(BLOCK_SIZE, END_R, END_C)
         for (j = END; j < n - BLOCK_SIZE; j += BLOCK_SIZE) {
             END_R = j + BLOCK_SIZE;
             for (k = END; k < n - BLOCK_SIZE; k += BLOCK_SIZE) {
@@ -316,8 +323,8 @@ int main(int agrc, char* agrv[]) {
             r2 = a1[i + 2][k];
             r3 = a1[i + 3][k];
 
-            for (m = END;
-                 m < n - (n % BLOCK_SIZE ? n % BLOCK_SIZE : BLOCK_SIZE); m++) {
+			#pragma omp parallel for shared(r0, r1, r2, r3)
+            for (m = END; m < n - (n % BLOCK_SIZE ? n % BLOCK_SIZE : BLOCK_SIZE); m++) {
                 a1[m][k] -= r0 * a1[m][i] + r1 * a1[m][i + 1] +
                             r2 * a1[m][i + 2] + r3 * a1[m][i + 3];
             }
@@ -331,13 +338,13 @@ int main(int agrc, char* agrv[]) {
             c2 = a1[j][i + 2];
             c3 = a1[j][i + 3];
 
+			#pragma omp parallel for shared(c0, c1, c2, c3)
             for (t = END; t < n; t++) {
                 a1[j][t] -= c0 * a1[i][t] + c1 * a1[i + 1][t] +
                             c2 * a1[i + 2][t] + c3 * a1[i + 3][t];
             }
         }
 
-        // print_matrix(a1, n, n);
     }
 
     for (; i < n - 1; i++) {
@@ -362,13 +369,15 @@ int main(int agrc, char* agrv[]) {
             a1[indk] = cp;
         }
 
+		#pragma omp parallel for
         for (k = i + 1; k < n; k++) {
-            a1[k][i] = a1[k][i] / a1[i][i];
+            a1[k][i] /= a1[i][i];
         }
 
         // subtract multiple of row a(i,:) to zero out a(j,i)
         for (k = i + 1; k < n; k++) {
             c = a1[k][i];
+			#pragma omp parallel for shared(c)
             for (j = i + 1; j < n; j++) {
                 a1[k][j] -= c * a1[i][j];
             }
@@ -387,7 +396,7 @@ int main(int agrc, char* agrv[]) {
             if (fabs(a[i][j] - a1[i][j]) > 1.0E-7) {
                 // print_matrix(a, n, n);
                 // print_matrix(a1, n, n);
-				// printf("%d %d %.8lf %.8lf\n", i, j, a[i][j], a1[i][j]);
+                // printf("%d %d %.8lf %.8lf\n", i, j, a[i][j], a1[i][j]);
                 printf("check fail\n");
                 exit(1);
             }

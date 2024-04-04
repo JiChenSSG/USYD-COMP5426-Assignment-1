@@ -59,3 +59,5 @@ gepp_omp
 gepp_omp_d
 .clang-format
 .vscode/
+
+*.tar

@@ -55,27 +55,6 @@ int main(int agrc, char* agrv[]) {
         }
     }
 
-    // double data[10][10] = {
-    //     {0.07, 0.46, 0.07, 0.23, 0.66, 0.20, 0.08, 0.96, 0.01, 0.01},
-    //     {0.77, 0.40, 0.14, 0.14, 0.25, 0.87, 0.62, 0.79, 0.49, 0.21},
-    //     {0.03, 0.77, 0.74, 0.47, 0.86, 0.24, 0.59, 0.85, 0.26, 0.39},
-    //     {0.43, 0.33, 0.85, 0.50, 0.56, 0.51, 0.70, 0.64, 0.48, 0.71},
-    //     {0.65, 0.25, 0.11, 0.79, 0.38, 0.35, 0.66, 0.01, 0.14, 0.15},
-    //     {0.21, 0.17, 0.93, 0.95, 0.64, 0.79, 0.19, 0.23, 0.64, 0.46},
-    //     {0.62, 0.07, 0.79, 0.47, 0.56, 0.34, 0.98, 0.26, 0.99, 0.46},
-    //     {0.97, 0.64, 0.70, 0.08, 0.43, 0.09, 0.43, 0.09, 0.09, 0.57},
-    //     {0.24, 0.30, 0.73, 0.17, 0.26, 0.37, 0.96, 0.45, 0.60, 0.60},
-    //     {0.90, 0.22, 0.67, 0.69, 0.69, 0.23, 0.03, 0.67, 0.50, 0.02}};
-
-    // for (i = 0; i < 10; i++) {
-    //     for (j = 0; j < 10; j++) {
-    //         a[i][j] = a1[i][j] = data[i][j];
-    //     }
-    // }
-
-    // printf("matrix a: \n");
-    // print_matrix(a, n, n);
-
     printf("Starting sequential computation...\n\n");
     /**** Sequential computation *****/
     gettimeofday(&start_time, 0);
@@ -108,9 +87,6 @@ int main(int agrc, char* agrv[]) {
             a[k][i] = a[k][i] / a[i][i];
         }
 
-        // printf("%d.1:\n", i + 1);
-        // print_matrix(a, n, n);
-
         // subtract multiple of row a(i,:) to zero out a(j,i)
         for (k = i + 1; k < n; k++) {
             c = a[k][i];
@@ -119,8 +95,6 @@ int main(int agrc, char* agrv[]) {
             }
         }
 
-        // printf("%d.2:\n", i + 1);
-        // print_matrix(a, n, n);
     }
     gettimeofday(&end_time, 0);
 
@@ -166,15 +140,11 @@ int main(int agrc, char* agrv[]) {
                 a1[indk] = cp;
             }
 
-            // print_matrix(a1, n, n);
-
             // store multiplier in place of A(k,i), update col
             atop = a1[j][j];
             for (k = j + 1; k < n; k++) {
                 a1[k][j] = a1[k][j] / atop;
             }
-
-            // print_matrix(a1, n, n);
 
             // update A(j+1:n, i:END) for next swap
             for (k = j + 1; k < n; ++k) {
@@ -183,8 +153,6 @@ int main(int agrc, char* agrv[]) {
                     a1[k][m] -= a1[j][m] * c;
                 }
             }
-
-            // print_matrix(a1, n, n);
         }
 
         // calculate A(i:END, END:n)
@@ -197,8 +165,6 @@ int main(int agrc, char* agrv[]) {
                 }
             }
         }
-
-        // print_matrix(a1, n, n);
 
         // calculate trailing matrix in BLAS 3
         for (j = END; j < n - BLOCK_SIZE; j += BLOCK_SIZE) {
@@ -216,7 +182,6 @@ int main(int agrc, char* agrv[]) {
                                     c2 * a1[i + 2][t] + c3 * a1[i + 3][t];
                     }
                 }
-        		// print_matrix(a1, n, n);
             }
         }
 
@@ -233,8 +198,6 @@ int main(int agrc, char* agrv[]) {
                            r3 * a1[m][i + 3];
             }
         }
-
-        // print_matrix(a1, n, n);
 
         for (; j < n; j++) {
             c0 = a1[j][i];
@@ -297,8 +260,6 @@ int main(int agrc, char* agrv[]) {
         for (int j = 0; j < n; j++) {
             if (fabs(a[i][j] - a1[i][j]) > 1.0E-5) {
                 printf("check fail\n");
-				// print_matrix(a, n, n);
-				// print_matrix(a1, n, n);
                 exit(1);
             }
         }

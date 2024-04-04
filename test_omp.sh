@@ -3,11 +3,11 @@
 total_sequential_time=0
 total_unrolling_time=0
 
-program_name=gepp
+program_name=gepp_omp
 
 for i in {1..10}
 do
-    output=$(./$program_name $1)
+    output=$(./$program_name $1 $2)
     
     sequential_time_value=$(echo "$output" | grep "sequential calculation time" | awk '{print $4}')
 

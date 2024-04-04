@@ -136,7 +136,6 @@ int main(int agrc, char* agrv[]) {
     int END, END_R, END_C;
     register double c0, c1, c2, c3;
     register double r0, r1, r2, r3;
-    register double a00, a01, a02, a03;
     double* cp;
     double atop;
     int m, tmp, t;

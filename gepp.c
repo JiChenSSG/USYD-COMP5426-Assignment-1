@@ -144,57 +144,8 @@ int main(int agrc, char* agrv[]) {
     gettimeofday(&start_time, 0);
     for (i = 0; i < n - BLOCK_SIZE - 1; i += BLOCK_SIZE) {
         END = i + BLOCK_SIZE;
-        // apply BLAS2 version of GEPP to get A(i:n , i:END)
-
-        // pre-produce for the first row
-        // find and record k where |a(k,i)|=max|a(j,i)|
-        amax = a1[i][i];
-        indk = i;
-        for (k = i + 1; k < n; k++) {
-            if (fabs(a1[k][i]) > fabs(amax)) {
-                amax = a1[k][i];
-                indk = k;
-            }
-        }
-
-        // exit with a warning that a is singular
-        if (amax == 0) {
-            printf("matrix is singular!\n");
-            exit(1);
-        } else if (indk != i) {
-            // swap row i and row k with pointer
-            cp = a1[i];
-            a1[i] = a1[indk];
-            a1[indk] = cp;
-        }
-
-        // print_matrix(a1, n, n);
-
-        // store multiplier in place of A(k,i), update A(i:i, i:n)
-        atop = a1[i][i];
-        for (k = i + 1; k < n; k++) {
-            a1[k][i] = a1[k][i] / atop;
-        }
-
-        // print_matrix(a1, n, n);
-
-        // update A(i+1:n, i:END) for next swap
-        j = i + 1;
-        a00 = a1[i][j];
-        a01 = a1[i][j + 1];
-        a02 = a1[i][j + 2];
-        for (k = j; k < n; ++k) {
-            c = a1[k][i];
-
-            a1[k][j] -= a00 * c;
-            a1[k][j + 1] -= a01 * c;
-            a1[k][j + 2] -= a02 * c;
-        }
-
-        // print_matrix(a1, n, n);
-
         // update row(i+1:i+BLOCK_SIZE)
-        for (j = i + 1; j < i + BLOCK_SIZE - 1; j++) {
+        for (j = i; j < i + BLOCK_SIZE; j++) {
             // find and record k where |a(k,i)|=max|a(j,i)|
             amax = a1[j][j];
             indk = j;
@@ -236,39 +187,6 @@ int main(int agrc, char* agrv[]) {
 
             // print_matrix(a1, n, n);
         }
-
-        // one more swap and col update
-        // find and record k where |a(k,i)|=max|a(j,i)|
-        m = END - 1;
-		amax = a1[m][m];
-        indk = m;
-        for (k = END; k < n; k++) {
-            if (fabs(a1[k][m]) > fabs(amax)) {
-                amax = a1[k][m];
-                indk = k;
-            }
-        }
-
-        // exit with a warning that a is singular
-        if (amax == 0) {
-            printf("matrix is singular!\n");
-            exit(1);
-        } else if (indk != m) {
-            // swap row i and row k with pointer
-            cp = a1[m];
-            a1[m] = a1[indk];
-            a1[indk] = cp;
-        }
-
-        // print_matrix(a1, n, n);
-
-        // store multiplier in place of A(k,i), update A(i:i, i:n)
-        atop = a1[m][m];
-        for (k = m + 1; k < n; k++) {
-            a1[k][m] = a1[k][m] / atop;
-        }
-
-        // print_matrix(a1, n, n);
 
         // calculate A(i:END, END:n)
         for (j = 0; j < BLOCK_SIZE - 1; j++) {
@@ -374,7 +292,7 @@ int main(int agrc, char* agrv[]) {
     seconds = end_time.tv_sec - start_time.tv_sec;
     microseconds = end_time.tv_usec - start_time.tv_usec;
     elapsed = seconds + 1e-6 * microseconds;
-    printf("sequential calculation time: %f\n\n", elapsed);
+    printf("unrolling and blocking calculation time: %f\n\n", elapsed);
 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {

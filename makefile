@@ -1,6 +1,6 @@
 CC=gcc
 DEBUGFLAGS=-DDEBUG
-CFLAGS=-g -Wall -O2
+CFLAGS=-g -Wall -O3
 OMPFLAGS =-fopenmp
 
 all: gepp omp
@@ -18,5 +18,5 @@ debug: gepp.c
 	$(CC) $(CFLAGS) $(DEBUGFLAGS) -o gepp_d gepp.c $(OMPFLAGS)
 
 clean:
-	rm -f gepp example gepp_d
+	rm -f gepp example gepp_d omp
 

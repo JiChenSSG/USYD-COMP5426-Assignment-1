@@ -94,7 +94,6 @@ int main(int agrc, char* agrv[]) {
                 a[k][j] -= c * a[i][j];
             }
         }
-
     }
     gettimeofday(&end_time, 0);
 
@@ -108,17 +107,17 @@ int main(int agrc, char* agrv[]) {
     /**** Unrolling and block computation *****/
 
     int END, END_R, END_C;
-    register double c0, c1, c2, c3;
-    register double r0, r1, r2, r3;
+    double c0, c1, c2, c3;
+    double r0, r1, r2, r3;
     double* cp;
     double atop;
     int m, tmp, t;
 
     gettimeofday(&start_time, 0);
-    for (i = 0; i < n - BLOCK_SIZE - 1; i += BLOCK_SIZE) {
+    for (i = 0; i < n - BLOCK_SIZE + 1; i += BLOCK_SIZE) {
         END = i + BLOCK_SIZE;
         // update row(i+1:i+BLOCK_SIZE)
-        for (j = i; j < i + BLOCK_SIZE; j++) {
+        for (j = i; j < END; j++) {
             // find and record k where |a(k,i)|=max|a(j,i)|
             amax = a1[j][j];
             indk = j;
@@ -167,9 +166,9 @@ int main(int agrc, char* agrv[]) {
         }
 
         // calculate trailing matrix in BLAS 3
-        for (j = END; j < n - BLOCK_SIZE; j += BLOCK_SIZE) {
+        for (j = END; j < n - BLOCK_SIZE + 1; j += BLOCK_SIZE) {
             END_R = j + BLOCK_SIZE;
-            for (k = END; k < n - BLOCK_SIZE; k += BLOCK_SIZE) {
+            for (k = END; k < n - BLOCK_SIZE + 1; k += BLOCK_SIZE) {
                 END_C = k + BLOCK_SIZE;
                 for (m = j; m < END_R; m++) {
                     c0 = a1[m][i];
@@ -178,13 +177,11 @@ int main(int agrc, char* agrv[]) {
                     c3 = a1[m][i + 3];
 
                     for (t = k; t < END_C; t++) {
-                        a1[m][t] -= c0 * a1[i][t] + c1 * a1[i + 1][t] +
-                                    c2 * a1[i + 2][t] + c3 * a1[i + 3][t];
+                        a1[m][t] = a1[m][t] - c0 * a1[i][t] - c1 * a1[i + 1][t] - c2 * a1[i + 2][t] - c3 * a1[i + 3][t];
                     }
                 }
             }
         }
-
 
         // rest col and row(< 3) BLAS 2
         for (; k < n; k++) {
@@ -194,8 +191,7 @@ int main(int agrc, char* agrv[]) {
             r3 = a1[i + 3][k];
 
             for (m = END; m < n - (n % BLOCK_SIZE ? n % BLOCK_SIZE : BLOCK_SIZE); m++) {
-                a1[m][k] -= r0 * a1[m][i] + r1 * a1[m][i + 1] + r2 * a1[m][i + 2] +
-                           r3 * a1[m][i + 3];
+                a1[m][k] = a1[m][k] - r0 * a1[m][i] - r1 * a1[m][i + 1] - r2 * a1[m][i + 2] - r3 * a1[m][i + 3];
             }
         }
 
@@ -206,12 +202,9 @@ int main(int agrc, char* agrv[]) {
             c3 = a1[j][i + 3];
 
             for (t = END; t < n; t++) {
-                a1[j][t] -= c0 * a1[i][t] + c1 * a1[i + 1][t] +
-                            c2 * a1[i + 2][t] + c3 * a1[i + 3][t];
+                a1[j][t] = a1[j][t] - c0 * a1[i][t] - c1 * a1[i + 1][t] - c2 * a1[i + 2][t] - c3 * a1[i + 3][t];
             }
         }
-
-        // print_matrix(a1, n, n);
     }
 
     for (; i < n - 1; i++) {
@@ -258,19 +251,19 @@ int main(int agrc, char* agrv[]) {
 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            if (fabs(a[i][j] - a1[i][j]) > 1.0E-5) {
+            if (fabs(a[i][j] - a1[i][j]) > 1.0E-16) {
                 printf("check fail\n");
                 exit(1);
             }
         }
     }
+    printf("check pass\n");
 }
 
 void print_matrix(double** T, int rows, int cols) {
     for (int i = 0; i < rows; i++) {
-        // printf("{");
         for (int j = 0; j < cols; j++) {
-            printf("%.2f\t", T[i][j]);
+            printf("%.16f\t", T[i][j]);
         }
         printf("\n");
     }

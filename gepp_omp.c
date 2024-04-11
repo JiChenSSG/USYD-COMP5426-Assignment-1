@@ -35,7 +35,8 @@ int main(int agrc, char* agrv[]) {
         printf(
             "Usage: %s n\n\n \
              n: the matrix size\n \
-             T: the thread number\n\n", agrv[0]);
+             T: the thread number\n\n",
+            agrv[0]);
         return 1;
     }
 
@@ -93,9 +94,6 @@ int main(int agrc, char* agrv[]) {
             a[k][i] = a[k][i] / a[i][i];
         }
 
-        // printf("%d.1:\n", i + 1);
-        // print_matrix(a, n, n);
-
         // subtract multiple of row a(i,:) to zero out a(j,i)
         for (k = i + 1; k < n; k++) {
             c = a[k][i];
@@ -103,9 +101,6 @@ int main(int agrc, char* agrv[]) {
                 a[k][j] -= c * a[i][j];
             }
         }
-
-        // printf("%d.2:\n", i + 1);
-        // print_matrix(a, n, n);
     }
     gettimeofday(&end_time, 0);
 
@@ -119,8 +114,8 @@ int main(int agrc, char* agrv[]) {
     /**** Unrolling and block computation *****/
 
     int END, END_R, END_C;
-    register double c0, c1, c2, c3;
-    register double r0, r1, r2, r3;
+    double c0, c1, c2, c3;
+    double r0, r1, r2, r3;
     double* cp;
     double atop;
     int m, tmp, t;
@@ -128,11 +123,11 @@ int main(int agrc, char* agrv[]) {
     // clang-format off
 
     gettimeofday(&start_time, 0);
-    for (i = 0; i < n - BLOCK_SIZE - 1; i += BLOCK_SIZE) {
+    for (i = 0; i < n - BLOCK_SIZE + 1; i += BLOCK_SIZE) {
         END = i + BLOCK_SIZE;
         // apply BLAS2 version of GEPP to get A(i:n , i:END)
         // update row(i:i+BLOCK_SIZE)
-        for (j = i; j < i + BLOCK_SIZE; j++) {
+        for (j = i; j < END; j++) {
             // find and record k where |a(k,i)|=max|a(j,i)|
             amax = a1[j][j];
             indk = j;
@@ -186,10 +181,10 @@ int main(int agrc, char* agrv[]) {
         }
 
         // calculate trailing matrix in BLAS 3
-		#pragma omp parallel for shared(BLOCK_SIZE, END_R, END_C)
-        for (j = END; j < n - BLOCK_SIZE; j += BLOCK_SIZE) {
+		#pragma omp parallel for shared(BLOCK_SIZE, END_R, END_C) lastprivate(j)
+        for (j = END; j < n - BLOCK_SIZE + 1; j += BLOCK_SIZE) {
             END_R = j + BLOCK_SIZE;
-            for (k = END; k < n - BLOCK_SIZE; k += BLOCK_SIZE) {
+            for (k = END; k < n - BLOCK_SIZE + 1; k += BLOCK_SIZE) {
                 END_C = k + BLOCK_SIZE;
                 for (m = j; m < END_R; m++) {
                     c0 = a1[m][i];
@@ -197,16 +192,16 @@ int main(int agrc, char* agrv[]) {
                     c2 = a1[m][i + 2];
                     c3 = a1[m][i + 3];
                     for (t = k; t < END_C; t++) {
-                        a1[m][t] -= c0 * a1[i][t] + c1 * a1[i + 1][t] +
-                                    c2 * a1[i + 2][t] + c3 * a1[i + 3][t];
+                        a1[m][t] = a1[m][t] - c0 * a1[i][t] - c1 * a1[i + 1][t] - c2 * a1[i + 2][t] - c3 * a1[i + 3][t];
                     }
                 }
-                // print_matrix(a1, n, n);
             }
         }
 
+		k = j;
+
         // rest col and row(< 3) BLAS 2
-        for (k = n - BLOCK_SIZE; k < n; k++) {
+        for (; k < n; k++) {
             r0 = a1[i][k];
             r1 = a1[i + 1][k];
             r2 = a1[i + 2][k];
@@ -214,12 +209,11 @@ int main(int agrc, char* agrv[]) {
 
 			#pragma omp parallel for shared(r0, r1, r2, r3)
             for (m = END; m < n - (n % BLOCK_SIZE ? n % BLOCK_SIZE : BLOCK_SIZE); m++) {
-                a1[m][k] -= r0 * a1[m][i] + r1 * a1[m][i + 1] +
-                            r2 * a1[m][i + 2] + r3 * a1[m][i + 3];
+                a1[m][k] = a1[m][k] - r0 * a1[m][i] - r1 * a1[m][i + 1] - r2 * a1[m][i + 2] - r3 * a1[m][i + 3];
             }
         }
 
-        for (j = n - BLOCK_SIZE; j < n; j++) {
+        for (; j < n; j++) {
             c0 = a1[j][i];
             c1 = a1[j][i + 1];
             c2 = a1[j][i + 2];
@@ -227,8 +221,7 @@ int main(int agrc, char* agrv[]) {
 
 			#pragma omp parallel for shared(c0, c1, c2, c3)
             for (t = END; t < n; t++) {
-                a1[j][t] -= c0 * a1[i][t] + c1 * a1[i + 1][t] +
-                            c2 * a1[i + 2][t] + c3 * a1[i + 3][t];
+                a1[j][t] = a1[j][t] - c0 * a1[i][t] - c1 * a1[i + 1][t] - c2 * a1[i + 2][t] - c3 * a1[i + 3][t];
             }
         }
 
@@ -256,7 +249,7 @@ int main(int agrc, char* agrv[]) {
             a1[indk] = cp;
         }
 
-		#pragma omp parallel for
+		// #pragma omp parallel for
         for (k = i + 1; k < n; k++) {
             a1[k][i] /= a1[i][i];
         }

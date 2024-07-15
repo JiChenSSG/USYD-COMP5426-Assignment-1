@@ -1,3 +1,7 @@
+# USYD 2024 COMP5426 Assignment1
+
+a parallel design for Gaussian Elimination in c with openmpi
+
 ## Usage
 
 ```sh
